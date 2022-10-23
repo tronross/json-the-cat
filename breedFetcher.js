@@ -1,26 +1,31 @@
 const request = require('request');
-const breed = process.argv.slice(2);
 
-// breedFetcher: pulls and parses a database of cat breeds, accepts a breed search from the CLI and logs a description of that breed
-request('https://api.thecatapi.com/v1/breeds/?api_key=live_r0B7cIH8zcZo4kF4ganpZvXVgD9mFC8FinJEY6yL2BpphlLhnt8vEm4sfw8uPseh/search?breed_ids', (error, response, body) => {
+// breedFetchDescription: accepts a breed search-term and returns a description of that breed via a request to an API
+const fetchBreedDescription = function(breedName, callback) {
   
-  // Print the error if one occurred
-  if (error !== null) {
-    console.log('error:', error);
-    return;
-  }
-  // Print the response status code if not 200
-  if (response.statusCode !== 200) {
-    console.log('statusCode:', response && response.statusCode);
-    return;
-  }
+  request(`https://api.thecatapi.com/v1/breeds/search?q=${breedName}`, (error, response, body) => {
+    let desc = null;
+    let err = null;
 
-  const data = JSON.parse(body); // parse into array of objects
-  const breedObj = data.find(element => element.name === breed[0]); // find breed in array
-  
-  if (breedObj) {
-    console.log(breedObj.description);
-  } else {
-    console.log(`${breed} does not exist in the database`);
-  }
-});
+    if (error) {
+      err = error;
+      return callback(err, desc);
+    } else if (response.statusCode !== 200) {
+      err = `statusCode: ${response && response.statusCode}`;
+      return callback(err, desc);
+    }
+
+    const data = JSON.parse(body); // parse
+    if (data[0] === undefined) {
+      err = `${breedName} does not exist in the database`;
+      return callback(err, desc);
+    }
+    desc = data[0].description;
+    callback(err, desc);
+  });
+};
+
+
+module.exports = {
+  fetchBreedDescription,
+};
